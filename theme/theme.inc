@@ -7,6 +7,9 @@
 /**
  * Implements theme_element().
  */
+
+include("constituent_info.php");
+
 function theme_islandora_solr_metadata_management_table(array $variables) {
   $table = $variables['table'];
   $rows = array();
@@ -60,6 +63,7 @@ function template_preprocess_islandora_solr_metadata_display(array &$variables) 
   $solr_fields =& $variables['solr_fields'];
   $associations = $variables['associations'];
 
+
   foreach ($associations as $configuration_id) {
     $field = islandora_solr_metadata_get_fields($configuration_id['configuration_id']);
     $db_fields = array_merge($db_fields, $field);
@@ -80,24 +84,10 @@ function template_preprocess_islandora_solr_metadata_display(array &$variables) 
   }
   $variables['separator'] = $separator;
   $variables['parent_collections'] = islandora_get_parents_from_rels_ext($object);
-  islandora_solr_metadata_add_theme_hook_suggestions($variables, 'islandora_solr_metadata_display');
-}
-
-/**
- * Helper function to add theme hook suggestions.
- */
-function islandora_solr_metadata_add_theme_hook_suggestions(array &$variables, $base) {
-  $object = $variables['islandora_object'];
-  if (count($object->models) > 0) {
-    $models = array();
-    foreach ($object->models as $model) {
-      if ($model === 'fedora-system:FedoraObject-3.0') {
-        continue;
-      }
-      $models[] = preg_replace('/[^a-z0-9-]+/', '-', strtolower($model));
-    }
-    $variables['theme_hook_suggestions'] += theme_get_suggestions($models, $base);
-  }
+  $variables['constituent_labels'] = get_constituent_label();
+  $pid = $object->id;
+  $variables['constituent_labels'] = get_constituent_label();
+  $variables['constituent_info'] = get_constituent_info($pid);
 }
 
 /**
@@ -148,7 +138,6 @@ function template_preprocess_islandora_solr_metadata_description(array &$variabl
     $separator = "\n";
   }
   $variables['separator'] = $separator;
-  islandora_solr_metadata_add_theme_hook_suggestions($variables, 'islandora_solr_metadata_description');
 }
 
 /**
@@ -283,7 +272,7 @@ function islandora_solr_metadata_query_fields($object, &$solr_fields) {
               ));
             }
           }
-          if (!empty($solr_fields[$solr_field]['date_format']) && islandora_solr_is_date_field($solr_field)) {
+          if (islandora_solr_is_date_field($solr_field) && !empty($solr_fields[$solr_field]['date_format'])) {
             $value = format_date(strtotime($value), 'custom', $solr_fields[$solr_field]['date_format'], 'UTC');
           }
           if (is_callable($field_config['formatter'])) {
